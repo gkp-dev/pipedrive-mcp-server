@@ -1,6 +1,6 @@
 # MCP Pipedrive Server
 
-Serveur MCP local et agnostique pour connecter Pipedrive à Codex, Claude Desktop ou tout client compatible MCP.
+Serveur MCP local et agnostique pour connecter Pipedrive à Claude Desktop, Codex ou tout client compatible MCP.
 
 Le serveur utilise l'API REST Pipedrive avec un token fourni par chaque utilisateur dans son propre fichier `.env`. Aucun secret ne doit être commité.
 
@@ -23,8 +23,8 @@ Le serveur utilise l'API REST Pipedrive avec un token fourni par chaque utilisat
 ## Installation
 
 ```bash
-git clone https://github.com/gkp-dev/mcp-pipedrive-server.git
-cd mcp-pipedrive-server
+git clone https://github.com/gkp-dev/pipedrive-mcp-server.git
+cd pipedrive-mcp-server
 npm install
 npm run build
 ```
@@ -41,60 +41,23 @@ Puis renseigner votre token Pipedrive dans `.env` :
 
 ```env
 PIPEDRIVE_API_TOKEN=your-pipedrive-api-token
-PIPEDRIVE_API_BASE_URL=https://api.pipedrive.com/v1
-PIPEDRIVE_DEFAULT_LIMIT=25
-PIPEDRIVE_REQUEST_TIMEOUT_MS=30000
 PIPEDRIVE_READ_ONLY=true
-MCP_TRANSPORT=stdio
-PORT=3000
-HOST=0.0.0.0
-MCP_AUTH_TOKEN=
 ```
 
 ### Variables
 
-| Variable | Description | Défaut conseillé |
+| Variable | Description | Valeur recommandée |
 |---|---|---|
 | `PIPEDRIVE_API_TOKEN` | Token API personnel Pipedrive. Obligatoire. | Aucun |
-| `PIPEDRIVE_API_BASE_URL` | URL de base de l'API Pipedrive. | `https://api.pipedrive.com/v1` |
-| `PIPEDRIVE_DEFAULT_LIMIT` | Taille de page par défaut pour les listes. | `25` |
-| `PIPEDRIVE_REQUEST_TIMEOUT_MS` | Timeout des requêtes API. | `30000` |
 | `PIPEDRIVE_READ_ONLY` | Bloque les outils d'écriture quand `true`. | `true` |
-| `MCP_TRANSPORT` | Transport MCP à utiliser : `stdio` ou `http`. | `stdio` |
-| `PORT` | Port HTTP quand `MCP_TRANSPORT=http`. | `3000` |
-| `HOST` | Host HTTP quand `MCP_TRANSPORT=http`. | `0.0.0.0` |
-| `MCP_AUTH_TOKEN` | Token bearer requis en mode HTTP. | Aucun |
 
 Par défaut, gardez `PIPEDRIVE_READ_ONLY=true`. Passez à `false` seulement si vous voulez autoriser la création d'activités, l'ajout de notes ou les mises à jour.
 
-## Transports MCP
+## Mode local
 
-### Local, recommandé pour commencer
+Le serveur fonctionne en local via le transport MCP `stdio`, utilisé par défaut par le code.
 
-Le mode par défaut est `stdio`. Il convient aux usages locaux avec Codex ou Claude Desktop.
-
-```env
-MCP_TRANSPORT=stdio
-```
-
-### HTTP privé
-
-Le mode HTTP expose un endpoint MCP sur `/mcp` et un healthcheck sur `/health`.
-
-```env
-MCP_TRANSPORT=http
-MCP_AUTH_TOKEN=generate-a-long-random-token
-PORT=3000
-HOST=0.0.0.0
-```
-
-Toutes les requêtes vers `/mcp` doivent inclure :
-
-```http
-Authorization: Bearer <MCP_AUTH_TOKEN>
-```
-
-N'exposez jamais le mode HTTP sans `MCP_AUTH_TOKEN`.
+Il n'est pas nécessaire de configurer un port, un host ou un token MCP pour Claude Desktop.
 
 ## Utilisation avec Codex
 
@@ -129,7 +92,6 @@ Voir [docs/claude-desktop.md](docs/claude-desktop.md).
 - Ne commitez jamais `.env`.
 - Chaque collaborateur doit utiliser son propre token Pipedrive.
 - Commencez avec `PIPEDRIVE_READ_ONLY=true` pour valider la configuration sans risque.
-- En mode HTTP, configurez toujours `MCP_AUTH_TOKEN`.
 - Le serveur ne supprime aucune donnée Pipedrive.
 - Les actions d'écriture sont limitées à des champs explicitement autorisés par les schémas MCP.
 - Les tokens sont lus depuis l'environnement local et ne sont pas stockés dans le repo.

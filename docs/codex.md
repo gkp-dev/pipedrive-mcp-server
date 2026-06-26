@@ -24,7 +24,7 @@ cp .env.example .env
 ```toml
 [mcp_servers.pipedrive]
 command = "bash"
-args = ["-lc", "cd /absolute/path/to/mcp-pipedrive-server && exec node build/index.js"]
+args = ["-lc", "cd /absolute/path/to/pipedrive-mcp-server && exec node build/index.js"]
 startup_timeout_sec = 120
 ```
 
@@ -33,7 +33,7 @@ Exemple macOS :
 ```toml
 [mcp_servers.pipedrive]
 command = "bash"
-args = ["-lc", "cd /Users/<user>/code/mcp-pipedrive-server && exec node build/index.js"]
+args = ["-lc", "cd /Users/<user>/code/pipedrive-mcp-server && exec node build/index.js"]
 startup_timeout_sec = 120
 ```
 

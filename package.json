@@ -6,12 +6,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/gkp-dev/mcp-pipedrive-server.git"
+    "url": "git+https://github.com/gkp-dev/pipedrive-mcp-server.git"
   },
   "bugs": {
-    "url": "https://github.com/gkp-dev/mcp-pipedrive-server/issues"
+    "url": "https://github.com/gkp-dev/pipedrive-mcp-server/issues"
   },
-  "homepage": "https://github.com/gkp-dev/mcp-pipedrive-server#readme",
+  "homepage": "https://github.com/gkp-dev/pipedrive-mcp-server#readme",
   "bin": {
     "mcp-pipedrive": "./build/index.js"
   },
