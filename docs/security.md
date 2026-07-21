@@ -1,55 +1,61 @@
-# Sécurité
+# Security
 
-## Modèle de menace
+This MCP server gives an AI client access to Pipedrive data. When write mode is enabled, it can also create activities, add notes, and update selected fields.
 
-Ce serveur MCP donne à un agent accès à des données CRM Pipedrive. Selon la configuration, il peut aussi créer des activités, ajouter des notes et mettre à jour certains champs.
+## Current safeguards
 
-Les principaux risques sont :
+- `.env` and its variants are ignored by Git.
+- `PIPEDRIVE_READ_ONLY=true` blocks all write tools.
+- Invalid boolean values are rejected instead of enabling writes.
+- Delete operations are not exposed.
+- Tool inputs are validated with Zod.
+- The Pipedrive token is sent in the `x-api-token` header and never added to request URLs.
+- The API destination is fixed to the official Pipedrive endpoint.
+- MCP tool annotations distinguish reads, updates, and non-idempotent creations for compatible clients.
+- API requests use a configurable timeout.
+- The local stdio transport does not open a network port.
+- Runtime logs use stderr because stdout is reserved for the MCP protocol.
 
-- exposition du token API Pipedrive ;
-- action d'écriture non voulue ;
-- fuite de données CRM dans les prompts, logs ou exports ;
-- mauvais rattachement d'une note ou activité à un deal, contact ou organisation ;
-- usage d'un token trop permissif par plusieurs collaborateurs.
+## Token handling
 
-## Garde-fous actuels
+- Use your own Pipedrive token and keep it in the local `.env` file.
+- Do not place the token in screenshots, support messages, shell history, or committed MCP configuration files.
+- Restrict access to `.env` and local client configuration files to your operating-system user.
+- Revoke and regenerate the token immediately if it is exposed.
+- Remember that regenerating a Pipedrive token breaks every integration using the previous value.
 
-- Le token est chargé depuis l'environnement local.
-- `.env` est ignoré par Git.
-- `PIPEDRIVE_READ_ONLY=true` bloque les outils d'écriture.
-- `MCP_AUTH_TOKEN` est obligatoire en mode HTTP.
-- Aucune suppression Pipedrive n'est exposée.
-- Les entrées des outils sont validées avec Zod.
-- Les champs modifiables sont limités par les schémas MCP.
-- Les requêtes API ont un timeout configurable.
+The server resolves `.env` relative to its installation directory. Claude and Codex therefore do not need the token in their own configuration.
 
-## Bonnes pratiques d'utilisation
+## Write access
 
-- Chaque collaborateur doit utiliser son propre token.
-- Garder `PIPEDRIVE_READ_ONLY=true` pour la première configuration.
-- Passer `PIPEDRIVE_READ_ONLY=false` uniquement quand les actions d'écriture sont nécessaires.
-- Ne jamais exposer le mode HTTP sans bearer token.
-- Tester les écritures sur un contact ou deal de test avant usage réel.
-- Ne jamais partager `.env`, captures contenant un token ou logs sensibles.
-- Révoquer immédiatement un token exposé par erreur.
+Start with:
 
-## Avant de pousser sur GitHub
+```env
+PIPEDRIVE_READ_ONLY=true
+```
 
-Exécuter :
+Enable writes only after read-only requests work. Test the first write operation on a dedicated Pipedrive record.
+
+Tool annotations help compatible clients present appropriate confirmations, but they are metadata rather than an authorization boundary. `PIPEDRIVE_READ_ONLY` remains the server-side control.
+
+The API token inherits the permissions and accessible data of its Pipedrive user. Read-only mode limits the MCP tools, but it does not reduce the underlying Pipedrive token permissions.
+
+## Before publishing changes
+
+Run:
 
 ```bash
-rg -n "PIPEDRIVE_API_TOKEN|api_token|password|secret|Bearer|Authorization" -g '!node_modules' -g '!build'
-git status --short
+npm run typecheck
 npm test
 npm run build
 npm audit --audit-level=moderate
+git status --short
 ```
 
-Vérifier que `.env`, `node_modules` et `build` ne sont pas suivis par Git.
+Also verify that `.env`, `node_modules`, `build`, credentials, private URLs, and customer-specific fields are not tracked.
 
-## Limites connues
+The current MCP SDK pulls `@hono/node-server` 1.x, which has a moderate path-traversal advisory in its static-file middleware. This server does not use that middleware. Do not force version 2 into the SDK dependency tree; update when the SDK publishes a compatible fix.
 
-- L'authentification repose sur un token API Pipedrive personnel. OAuth serait préférable pour une distribution SaaS ou multi-client.
-- Le serveur local ne centralise pas les logs ni les politiques d'accès.
-- Les permissions dépendent des droits du token Pipedrive utilisé.
-- Le mode HTTP utilise un bearer token statique. C'est suffisant pour un déploiement privé de test, mais pas pour une distribution publique.
+## Distribution boundary
+
+A local single-user integration can use a personal Pipedrive API token. A public service for multiple users or Pipedrive companies should implement Pipedrive OAuth with per-user authorization and scoped access.

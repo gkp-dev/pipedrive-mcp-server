@@ -18,7 +18,7 @@ export class PipedriveClient {
   constructor(private readonly config: AppConfig) {}
 
   searchDeals(params: SearchParams) {
-    return this.get("deals/search", params);
+    return this.get("deals/search", this.withDefaultLimit(params));
   }
 
   getDeal(id: number) {
@@ -30,7 +30,7 @@ export class PipedriveClient {
   }
 
   searchPersons(params: SearchParams) {
-    return this.get("persons/search", params);
+    return this.get("persons/search", this.withDefaultLimit(params));
   }
 
   getPerson(id: number) {
@@ -42,7 +42,7 @@ export class PipedriveClient {
   }
 
   searchOrganizations(params: SearchParams) {
-    return this.get("organizations/search", params);
+    return this.get("organizations/search", this.withDefaultLimit(params));
   }
 
   getOrganization(id: number) {
@@ -50,7 +50,7 @@ export class PipedriveClient {
   }
 
   listActivities(params: ListActivitiesParams) {
-    return this.get("activities", params);
+    return this.get("activities", this.withDefaultLimit(params));
   }
 
   createActivity(input: CreateActivityInput) {
@@ -58,7 +58,7 @@ export class PipedriveClient {
   }
 
   listNotes(params: ListNotesParams) {
-    return this.get("notes", params);
+    return this.get("notes", this.withDefaultLimit(params));
   }
 
   addNote(input: AddNoteInput) {
@@ -101,6 +101,13 @@ export class PipedriveClient {
     return this.request("PUT", path, body);
   }
 
+  private withDefaultLimit<T extends { limit?: number }>(params: T): T & { limit: number } {
+    return {
+      ...params,
+      limit: params.limit ?? this.config.defaultLimit
+    };
+  }
+
   private async request<T>(
     method: HttpMethod,
     path: string,
@@ -117,7 +124,8 @@ export class PipedriveClient {
         signal: controller.signal,
         headers: {
           Accept: "application/json",
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+          "x-api-token": this.config.apiToken
         },
         body: body ? JSON.stringify(compactObject(body)) : undefined
       });
@@ -140,7 +148,6 @@ export class PipedriveClient {
 
   private buildUrl(path: string, params: object): string {
     const url = new URL(`${this.config.apiBaseUrl.replace(/\/$/, "")}/${path}`);
-    url.searchParams.set("api_token", this.config.apiToken);
 
     for (const [key, value] of Object.entries(params)) {
       if (value !== undefined && value !== null && value !== "") {

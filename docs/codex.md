@@ -1,44 +1,123 @@
-# Configuration Codex
+# Connect Pipedrive to Codex
 
-Cette configuration lance le serveur depuis le dossier du projet. Le token reste uniquement dans le fichier `.env` local du projet.
+Codex CLI, the Codex app, and the Codex IDE extension share the same MCP configuration.
 
-## Étapes
+Complete the installation and `.env` setup in the main [README](../README.md) before continuing.
 
-1. Installer et compiler le serveur :
+## Find the required paths
+
+From the repository folder, find Node.js and the project path.
+
+macOS or Linux:
 
 ```bash
-npm install
+which node
+pwd
+```
+
+Windows PowerShell:
+
+```powershell
+(Get-Command node).Source
+(Get-Location).Path
+```
+
+You need two absolute paths:
+
+1. The Node.js executable.
+2. `build/index.js` inside this repository.
+
+## Option 1: Add the server with the Codex CLI
+
+This is the shortest method.
+
+macOS or Linux:
+
+```bash
+codex mcp add pipedrive -- /absolute/path/to/node /absolute/path/to/pipedrive-mcp-server/build/index.js
+```
+
+Windows PowerShell:
+
+```powershell
+codex mcp add pipedrive -- "C:\Program Files\nodejs\node.exe" "D:\absolute\path\to\pipedrive-mcp-server\build\index.js"
+```
+
+Replace both example paths with the values found on your machine.
+
+## Option 2: Configure `config.toml`
+
+Open Codex settings and select `Open config.toml`, or edit `~/.codex/config.toml` directly.
+
+macOS or Linux:
+
+```toml
+[mcp_servers.pipedrive]
+command = "/absolute/path/to/node"
+args = ["build/index.js"]
+cwd = "/absolute/path/to/pipedrive-mcp-server"
+startup_timeout_sec = 30
+```
+
+Windows uses the same configuration. Forward slashes make TOML paths easier to read:
+
+```toml
+[mcp_servers.pipedrive]
+command = "C:/Program Files/nodejs/node.exe"
+args = ["build/index.js"]
+cwd = "D:/absolute/path/to/pipedrive-mcp-server"
+startup_timeout_sec = 30
+```
+
+Do not add your Pipedrive token to `config.toml`. The server reads it from the `.env` file in its installation folder.
+
+## Verify the server
+
+List configured servers:
+
+```bash
+codex mcp list
+```
+
+Start or restart Codex, then open the MCP panel:
+
+```text
+/mcp
+```
+
+Confirm that `pipedrive` is connected and exposes tools. Test it with:
+
+```text
+Use Pipedrive to search for deals containing "Acme".
+```
+
+## Remove the server
+
+```bash
+codex mcp remove pipedrive
+```
+
+## Troubleshooting
+
+### Codex cannot find `node`
+
+Use the absolute Node.js path as `command`. GUI applications do not always inherit the same `PATH` as your terminal.
+
+### The server appears but does not connect
+
+Run these commands from the repository:
+
+```bash
 npm run build
+npm test
 ```
 
-2. Créer le fichier `.env` :
+Then confirm that the configured path points to `build/index.js`, not `src/index.ts`.
 
-```bash
-cp .env.example .env
-```
+### Configuration changes do not appear
 
-3. Renseigner `PIPEDRIVE_API_TOKEN` dans `.env`.
+Restart Codex after editing `config.toml`. The CLI, app, and IDE extension use the same Codex configuration layers.
 
-4. Ajouter le serveur MCP dans `~/.codex/config.toml` :
+## Official reference
 
-```toml
-[mcp_servers.pipedrive]
-command = "bash"
-args = ["-lc", "cd /absolute/path/to/pipedrive-mcp-server && exec node build/index.js"]
-startup_timeout_sec = 120
-```
-
-Exemple macOS :
-
-```toml
-[mcp_servers.pipedrive]
-command = "bash"
-args = ["-lc", "cd /Users/<user>/code/pipedrive-mcp-server && exec node build/index.js"]
-startup_timeout_sec = 120
-```
-
-5. Redémarrer Codex.
-
-## Sécurité
-
-Ne mettez pas le token dans `config.toml`. Gardez-le dans `.env`, qui doit rester local et ignoré par Git.
+See the official [Codex MCP configuration guide](https://learn.chatgpt.com/docs/extend/mcp) and [configuration reference](https://learn.chatgpt.com/docs/config-file/config-reference).

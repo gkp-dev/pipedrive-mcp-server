@@ -1,75 +1,142 @@
-# MCP Pipedrive Server
+# Pipedrive MCP Server
 
-Serveur MCP local et agnostique pour connecter Pipedrive à Claude Desktop, Codex ou tout client compatible MCP.
+<p align="center">
+  <img src="assets/pipedrive-logo.png" alt="Pipedrive" width="560">
+</p>
 
-Le serveur utilise l'API REST Pipedrive avec un token fourni par chaque utilisateur dans son propre fichier `.env`. Aucun secret ne doit être commité.
+Connect Pipedrive to Claude Desktop, Claude Code, Codex, or another MCP client.
 
-## Fonctionnalités
+This server runs locally and uses your own Pipedrive API token. It starts in read-only mode, does not expose delete operations, and keeps credentials outside the Git repository.
 
-- Rechercher des deals, personnes et organisations.
-- Récupérer le détail d'un deal, d'une personne ou d'une organisation.
-- Lister les activités et les notes.
-- Créer des activités.
-- Ajouter des notes.
-- Mettre à jour certains champs de deals et personnes, uniquement si le mode écriture est activé.
-- Exposer des ressources de schéma Pipedrive utiles aux agents.
+## What you can do
 
-## Prérequis
+- Search deals, people, and organizations.
+- Read deal, person, and organization details.
+- List activities and notes.
+- Create activities and notes when write access is enabled.
+- Update selected deal and person fields when write access is enabled.
+- Read useful Pipedrive schema resources from an MCP client.
 
-- Node.js 20 ou plus récent.
-- Un compte Pipedrive avec accès API.
-- Un client compatible MCP : Codex, Claude Desktop, Cursor ou équivalent.
+## Before you start
 
-## Installation
+You need:
+
+- [Node.js](https://nodejs.org/) 20 or newer.
+- [Git](https://git-scm.com/).
+- A Pipedrive account with access to a personal API token.
+- Claude Desktop, Claude Code, Codex, or another local MCP client.
+
+This version is intended for one user connecting their own Pipedrive account. A public multi-user service should use Pipedrive OAuth instead of shared API tokens.
+
+## Install
+
+### 1. Download and build the server
+
+macOS or Linux:
 
 ```bash
 git clone https://github.com/gkp-dev/pipedrive-mcp-server.git
 cd pipedrive-mcp-server
-npm install
+npm ci
+cp .env.example .env
 npm run build
 ```
 
-## Configuration locale
+Windows PowerShell:
 
-Copier l'exemple d'environnement :
-
-```bash
-cp .env.example .env
+```powershell
+git clone https://github.com/gkp-dev/pipedrive-mcp-server.git
+Set-Location pipedrive-mcp-server
+npm ci
+Copy-Item .env.example .env
+npm run build
 ```
 
-Puis renseigner votre token Pipedrive dans `.env` :
+### 2. Get your Pipedrive API token
+
+In Pipedrive, open:
+
+`Settings > Personal preferences > API`
+
+Copy your personal API token. If the API section is missing, ask a Pipedrive administrator to enable access to personal API tokens for your permission set.
+
+Important:
+
+- The token gives access to the Pipedrive data available to your user.
+- Each Pipedrive company has a different token.
+- Regenerating the token disables integrations that use the previous token.
+- Never commit, publish, or share the token.
+
+See the official [Pipedrive token guide](https://pipedrive.readme.io/docs/how-to-find-the-api-token) and [authentication reference](https://pipedrive.readme.io/docs/core-api-concepts-authentication).
+
+### 3. Configure the server
+
+Open the `.env` file created during installation:
 
 ```env
-PIPEDRIVE_API_TOKEN=your-pipedrive-api-token
+PIPEDRIVE_API_TOKEN=replace-with-your-own-token
 PIPEDRIVE_READ_ONLY=true
 ```
 
-### Variables
+Keep `PIPEDRIVE_READ_ONLY=true` for the first setup. The server will allow searches and reads, but reject every write operation.
 
-| Variable | Description | Valeur recommandée |
-|---|---|---|
-| `PIPEDRIVE_API_TOKEN` | Token API personnel Pipedrive. Obligatoire. | Aucun |
-| `PIPEDRIVE_READ_ONLY` | Bloque les outils d'écriture quand `true`. | `true` |
+### 4. Connect your MCP client
 
-Par défaut, gardez `PIPEDRIVE_READ_ONLY=true`. Passez à `false` seulement si vous voulez autoriser la création d'activités, l'ajout de notes ou les mises à jour.
+Choose the guide for your client:
 
-## Mode local
+- [Claude Desktop and Claude Code](docs/claude-desktop.md)
+- [Codex CLI, app, and IDE extension](docs/codex.md)
 
-Le serveur fonctionne en local via le transport MCP `stdio`, utilisé par défaut par le code.
+The client must launch this file with Node.js:
 
-Il n'est pas nécessaire de configurer un port, un host ou un token MCP pour Claude Desktop.
+```text
+/absolute/path/to/pipedrive-mcp-server/build/index.js
+```
 
-## Utilisation avec Codex
+Use an absolute path. The server loads `.env` from its own installation folder, so the token does not need to be copied into the client configuration.
 
-Voir [docs/codex.md](docs/codex.md).
+## Verify the connection
 
-## Utilisation avec Claude Desktop
+Ask your client:
 
-Voir [docs/claude-desktop.md](docs/claude-desktop.md).
+```text
+List the Pipedrive tools you can use.
+```
 
-## Outils MCP exposés
+Then try a read-only request:
 
-### Lecture
+```text
+Search Pipedrive deals containing "Acme".
+```
+
+Do not run `npm start` in a separate terminal for normal use. Claude or Codex starts the local process automatically. If you run it manually, it waits for MCP messages on standard input, which is expected.
+
+## Enable write operations
+
+Change the value in `.env` only after read-only requests work:
+
+```env
+PIPEDRIVE_READ_ONLY=false
+```
+
+Restart the MCP client. Claude or Codex can then create activities, add notes, and update the allowed fields. Delete operations are not exposed.
+
+Test write access on a dedicated Pipedrive record before using it with production data.
+
+## Environment variables
+
+| Variable | Required | Default | Purpose |
+|---|---:|---|---|
+| `PIPEDRIVE_API_TOKEN` | Yes | None | Personal Pipedrive API token. |
+| `PIPEDRIVE_READ_ONLY` | No | `true` | Blocks all write tools when enabled. |
+| `PIPEDRIVE_DEFAULT_LIMIT` | No | `25` | Default number of returned records. |
+| `PIPEDRIVE_REQUEST_TIMEOUT_MS` | No | `30000` | Request timeout in milliseconds. |
+
+Accepted boolean values are `true`, `false`, `1`, `0`, `yes`, `no`, `on`, and `off`. Invalid values are rejected.
+
+## Available tools
+
+Read tools:
 
 - `pipedrive_search_deals`
 - `pipedrive_get_deal`
@@ -80,52 +147,53 @@ Voir [docs/claude-desktop.md](docs/claude-desktop.md).
 - `pipedrive_list_activities`
 - `pipedrive_list_notes`
 
-### Écriture, bloquée si `PIPEDRIVE_READ_ONLY=true`
+Write tools, blocked when `PIPEDRIVE_READ_ONLY=true`:
 
 - `pipedrive_update_deal`
 - `pipedrive_update_person`
 - `pipedrive_create_activity`
 - `pipedrive_add_note`
 
-## Sécurité
-
-- Ne commitez jamais `.env`.
-- Chaque collaborateur doit utiliser son propre token Pipedrive.
-- Commencez avec `PIPEDRIVE_READ_ONLY=true` pour valider la configuration sans risque.
-- Le serveur ne supprime aucune donnée Pipedrive.
-- Les actions d'écriture sont limitées à des champs explicitement autorisés par les schémas MCP.
-- Les tokens sont lus depuis l'environnement local et ne sont pas stockés dans le repo.
-
-## Développement
+## Development
 
 ```bash
 npm run typecheck
 npm test
 npm run build
+npm audit --audit-level=moderate
 ```
 
-## Partager avec d'autres utilisateurs
-
-Chaque utilisateur doit :
-
-1. Cloner le repo.
-2. Installer les dépendances.
-3. Créer son propre fichier `.env`.
-4. Ajouter son propre token Pipedrive.
-5. Configurer son client MCP.
-
-Ne partagez jamais votre fichier `.env` avec un autre utilisateur.
-
-## Dépannage
+## Troubleshooting
 
 ### `PIPEDRIVE_API_TOKEN is required`
 
-Le fichier `.env` est absent ou ne contient pas `PIPEDRIVE_API_TOKEN`.
+Confirm that `.env` exists beside `package.json` and contains `PIPEDRIVE_API_TOKEN`.
 
-### Les outils d'écriture échouent
+### The client cannot start the server
 
-Vérifier `PIPEDRIVE_READ_ONLY`. Si la valeur est `true`, les créations et mises à jour sont volontairement bloquées.
+- Run `npm run build` again.
+- Confirm that `build/index.js` exists.
+- Use absolute paths for both Node.js and `build/index.js` when the client cannot find `node`.
+- Fully restart the MCP client after changing its configuration.
 
-### Le client MCP ne voit pas le serveur
+### Write tools are rejected
 
-Redémarrer le client après modification de sa configuration MCP.
+This is expected while `PIPEDRIVE_READ_ONLY=true`. Change it only if you explicitly want write access.
+
+### The token works in one company but not another
+
+Pipedrive uses a different personal token for each company. Copy the token from the company you want to connect.
+
+## Distribution roadmap
+
+The current installation is source-based and local. Planned improvements include:
+
+- An npm package for shorter command-line installation.
+- A signed `.mcpb` bundle for one-click Claude Desktop installation.
+- Pipedrive OAuth for a real multi-user distribution.
+
+See [ROADMAP.md](ROADMAP.md) for the current project status.
+
+## License
+
+[MIT](LICENSE)
