@@ -12,11 +12,14 @@
     "url": "https://github.com/gkp-dev/pipedrive-mcp-server/issues"
   },
   "homepage": "https://github.com/gkp-dev/pipedrive-mcp-server#readme",
+  "engines": {
+    "node": ">=20"
+  },
   "bin": {
     "mcp-pipedrive": "./build/index.js"
   },
   "scripts": {
-    "build": "tsc && chmod 755 build/index.js",
+    "build": "tsc",
     "dev": "tsx src/index.ts",
     "start": "node build/index.js",
     "typecheck": "tsc --noEmit",
@@ -25,10 +28,11 @@
   "files": [
     "build",
     "README.md",
-    "docs"
+    "docs",
+    "assets"
   ],
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.22.0",
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "dotenv": "^17.2.3",
     "zod": "^3.25.76"
   },

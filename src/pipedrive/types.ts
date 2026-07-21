@@ -1,5 +1,3 @@
-export type QueryValue = string | number | boolean | undefined | null;
-
 export interface PipedriveResponse<T> {
   success: boolean;
   data?: T;
@@ -14,9 +12,6 @@ export interface SearchParams {
   start?: number;
   fields?: string;
   exact_match?: boolean;
-  status?: string;
-  organization_id?: number;
-  person_id?: number;
 }
 
 export interface ListActivitiesParams {

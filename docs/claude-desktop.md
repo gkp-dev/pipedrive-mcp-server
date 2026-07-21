@@ -1,188 +1,166 @@
-# Setup Claude
+# Connect Pipedrive to Claude
 
-Ce guide permet d'utiliser Pipedrive avec Claude via le serveur MCP Pipedrive installé en local.
+This guide covers Claude Desktop and Claude Code. Complete the installation and `.env` setup in the main [README](../README.md) first.
 
-Vous pouvez le configurer de deux façons :
+Keep `PIPEDRIVE_READ_ONLY=true` until read operations work correctly.
 
-- Claude Desktop, si vous utilisez l'application Claude.
-- Claude Code, si vous utilisez le CLI `claude`.
+## Find the required paths
 
-Par défaut, le serveur doit rester en lecture seule avec `PIPEDRIVE_READ_ONLY=true`. Claude peut chercher et lire les données Pipedrive, mais il ne peut pas les modifier.
-
-## Prérequis
-
-- Claude Desktop ou Claude Code installé.
-- Node.js 20 ou plus récent.
-- Un token API Pipedrive personnel.
-- Un accès au repo GitHub du serveur MCP.
-
-## 1. Installer le serveur
-
-Ouvrir le Terminal, puis lancer :
+macOS or Linux:
 
 ```bash
-git clone https://github.com/gkp-dev/pipedrive-mcp-server.git
-cd pipedrive-mcp-server
-npm install
-npm run build
-```
-
-## 2. Récupérer le chemin du serveur
-
-Depuis le dossier du projet, lancer :
-
-```bash
+which node
 pwd
 ```
 
-Exemple de résultat :
+Windows PowerShell:
 
-```text
-/Users/jean/pipedrive-mcp-server
+```powershell
+(Get-Command node).Source
+(Get-Location).Path
 ```
 
-Le chemin à utiliser dans Claude sera :
+You need the absolute paths to the Node.js executable and this repository's `build/index.js` file.
 
-```text
-/Users/jean/pipedrive-mcp-server/build/index.js
-```
+## Claude Desktop
 
-## 3. Configurer Claude Desktop
+### 1. Open the configuration file
 
-Ouvrir le fichier de configuration Claude Desktop :
+In Claude Desktop, open:
 
-```text
-~/Library/Application Support/Claude/claude_desktop_config.json
-```
+`Settings > Developer > Edit Config`
 
-S'il n'existe pas, le créer.
+The documented locations are:
 
-Ajouter le serveur MCP :
+- macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- Windows: `%APPDATA%\Claude\claude_desktop_config.json`
+
+On Linux, use the `Edit Config` button so Claude opens the correct file for the installed version.
+
+### 2. Add the server
+
+macOS or Linux example:
 
 ```json
 {
   "mcpServers": {
     "pipedrive": {
-      "command": "node",
+      "command": "/absolute/path/to/node",
       "args": [
         "/absolute/path/to/pipedrive-mcp-server/build/index.js"
-      ],
-      "env": {
-        "PIPEDRIVE_API_TOKEN": "your-pipedrive-api-token",
-        "PIPEDRIVE_READ_ONLY": "true"
-      }
+      ]
     }
   }
 }
 ```
 
-Remplacer :
-
-```text
-/absolute/path/to/pipedrive-mcp-server/build/index.js
-```
-
-par le vrai chemin obtenu avec `pwd`.
-
-Remplacer aussi :
-
-```text
-your-pipedrive-api-token
-```
-
-par votre token Pipedrive.
-
-Exemple :
+Windows example:
 
 ```json
 {
   "mcpServers": {
     "pipedrive": {
-      "command": "node",
+      "command": "C:\\Program Files\\nodejs\\node.exe",
       "args": [
-        "/Users/jean/pipedrive-mcp-server/build/index.js"
-      ],
-      "env": {
-        "PIPEDRIVE_API_TOKEN": "pipedrive_api_token_here",
-        "PIPEDRIVE_READ_ONLY": "true"
-      }
+        "D:\\absolute\\path\\to\\pipedrive-mcp-server\\build\\index.js"
+      ]
     }
   }
 }
 ```
 
-Redémarrer Claude Desktop après modification.
+Replace the example paths with your own absolute paths. If the file already contains other servers, add `pipedrive` inside the existing `mcpServers` object instead of replacing the file.
 
-## 4. Configurer Claude Code (CLI)
+The Pipedrive token stays in the repository's `.env` file. Do not copy it into `claude_desktop_config.json`.
 
-Enregistrer le serveur MCP en configuration utilisateur, disponible dans tous les projets :
+### 3. Restart and test
+
+Fully quit Claude Desktop, including any tray or menu bar process, then reopen it.
+
+Ask:
+
+```text
+List the Pipedrive tools available to you.
+```
+
+Then try:
+
+```text
+Search Pipedrive deals containing "Acme".
+```
+
+## Claude Code
+
+### 1. Add the server
+
+User scope makes the server available in every Claude Code project while keeping the configuration private to your account.
+
+macOS or Linux:
 
 ```bash
-claude mcp add pipedrive -s user \
-  --env PIPEDRIVE_API_TOKEN="your-pipedrive-api-token" \
-  --env PIPEDRIVE_READ_ONLY="true" \
-  -- node /absolute/path/to/pipedrive-mcp-server/build/index.js
+claude mcp add --scope user --transport stdio pipedrive -- /absolute/path/to/node /absolute/path/to/pipedrive-mcp-server/build/index.js
 ```
 
-Remplacer :
+Windows PowerShell:
 
-```text
-/absolute/path/to/pipedrive-mcp-server/build/index.js
+```powershell
+claude mcp add --scope user --transport stdio pipedrive -- "C:\Program Files\nodejs\node.exe" "D:\absolute\path\to\pipedrive-mcp-server\build\index.js"
 ```
 
-par le vrai chemin obtenu avec `pwd`.
+Everything after `--` is the command Claude Code uses to start the local stdio server.
 
-Remplacer aussi :
-
-```text
-your-pipedrive-api-token
-```
-
-par votre token Pipedrive.
-
-Vérifier que le serveur est bien enregistré :
+### 2. Verify the connection
 
 ```bash
 claude mcp list
+claude mcp get pipedrive
 ```
 
-Pour supprimer la configuration si besoin :
+Inside a Claude Code session, open:
+
+```text
+/mcp
+```
+
+The server should appear as connected with its Pipedrive tools.
+
+### 3. Remove the server
 
 ```bash
-claude mcp remove pipedrive -s user
+claude mcp remove pipedrive --scope user
 ```
 
-## 5. Tester
+## Troubleshooting
 
-Dans Claude, demander :
+### `PIPEDRIVE_API_TOKEN is required`
 
-```text
-Est-ce que tu as accès au MCP Pipedrive ?
-```
+Confirm that `.env` exists beside `package.json`, not inside `build` or `src`.
 
-Puis tester une recherche simple :
+### Claude Desktop does not show the server
 
-```text
-Cherche un deal Pipedrive qui contient "Dupont".
-```
+- Validate the JSON syntax.
+- Check that every path is absolute.
+- On Windows, escape each backslash as `\\` inside JSON.
+- Fully quit and reopen Claude Desktop.
 
-## Sécurité
+Claude Desktop logs are normally available in:
 
-- Ne jamais partager votre token Pipedrive.
-- Chaque utilisateur doit utiliser son propre token Pipedrive.
-- Garder `PIPEDRIVE_READ_ONLY=true` tant que l'usage doit rester en lecture seule.
-- Ne passer `PIPEDRIVE_READ_ONLY` à `false` que si vous voulez explicitement autoriser Claude à écrire dans Pipedrive.
+- macOS: `~/Library/Logs/Claude`
+- Windows: `%APPDATA%\Claude\logs`
 
-## Dépannage
+Look for `mcp.log` and `mcp-server-pipedrive.log`.
 
-### Claude ne voit pas le serveur
+### Claude Code reports a connection failure
 
-Vérifier que le chemin pointe bien vers `build/index.js`, puis redémarrer Claude.
+Run `claude mcp get pipedrive` for the detailed error. Confirm that `npm run build` succeeds and that `build/index.js` exists.
 
-### Erreur `PIPEDRIVE_API_TOKEN is required`
+### Write tools fail
 
-Vérifier que `PIPEDRIVE_API_TOKEN` est bien renseigné dans la configuration Claude Desktop ou dans la commande `claude mcp add`.
+This is expected while `PIPEDRIVE_READ_ONLY=true`. Read-only mode is the recommended starting point.
 
-### Les outils d'écriture échouent
+## Official references
 
-C'est normal si `PIPEDRIVE_READ_ONLY=true`. Cette valeur bloque volontairement les créations et modifications dans Pipedrive.
+- [Connect Claude Code to MCP servers](https://code.claude.com/docs/en/mcp-servers)
+- [Claude Code MCP quickstart](https://code.claude.com/docs/en/mcp-quickstart)
+- [Connect local MCP servers to Claude Desktop](https://modelcontextprotocol.io/docs/develop/connect-local-servers)
+- [Build a one-click Claude Desktop bundle](https://claude.com/docs/connectors/building/mcpb)
